@@ -1,0 +1,129 @@
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --bg: #f3f5f9;
+  --surface: #ffffff;
+  --surface-elevated: #f6f8fc;
+  --surface-hover: #edf1f8;
+  --border: #d7dfec;
+  --border-subtle: #e4eaf5;
+  --text-primary: #10182b;
+  --text-secondary: #33415f;
+  --text-muted: #7081a6;
+  --accent: #1f6feb;
+  --accent-hover: #195fd1;
+  --accent-subtle: rgba(31, 111, 235, 0.12);
+  --accent-light: #1f6feb;
+  --upvote: #22c55e;
+  --upvote-bg: rgba(34, 197, 94, 0.1);
+  --upvote-hover: rgba(34, 197, 94, 0.2);
+  --downvote: #ef4444;
+  --downvote-bg: rgba(239, 68, 68, 0.1);
+  --downvote-hover: rgba(239, 68, 68, 0.2);
+  --danger: #ef4444;
+  --danger-hover: #dc2626;
+  --success: #22c55e;
+  --warning: #f59e0b;
+  --online: #10b981;
+  --radius: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-full: 9999px;
+  --shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+  --shadow-md: 0 8px 30px rgba(15, 23, 42, 0.12);
+  --popover: var(--surface);
+  --popover-foreground: var(--text-primary);
+  --transition: 140ms ease;
+}
+
+.dark[data-role='user'],
+:root[data-role='user'] {
+  --accent: #1e3a8a;
+  --accent-hover: #1e40af;
+  --accent-subtle: rgba(30, 58, 138, 0.12);
+  --accent-light: #1d4ed8;
+}
+
+.dark[data-role='moderator'],
+:root[data-role='moderator'] {
+  --accent: #ca8a04;
+  --accent-hover: #a16207;
+  --accent-subtle: rgba(202, 138, 4, 0.14);
+  --accent-light: #ca8a04;
+}
+
+.dark[data-role='admin'],
+:root[data-role='admin'] {
+  --accent: #b91c1c;
+  --accent-hover: #991b1b;
+  --accent-subtle: rgba(185, 28, 28, 0.14);
+  --accent-light: #dc2626;
+}
+
+.dark {
+  --bg: #0c0c12;
+  --surface: #13131b;
+  --surface-elevated: #1a1a24;
+  --surface-hover: #21212e;
+  --border: #28283a;
+  --border-subtle: #1e1e2a;
+  --text-primary: #eeeef6;
+  --text-secondary: #8a8aa6;
+  --text-muted: #525268;
+  --accent: #6366f1;
+  --accent-hover: #4e51e0;
+  --accent-subtle: rgba(99, 102, 241, 0.1);
+  --accent-light: #a5b4fc;
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.6);
+  --popover: var(--surface);
+  --popover-foreground: var(--text-primary);
+}
+
+html {
+  background: var(--bg);
+  color: var(--text-primary);
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  background: var(--bg);
+  min-height: 100vh;
+  line-height: 1.5;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  cursor: pointer;
+  font-family: inherit;
+  border: none;
+  background: none;
+  padding: 0;
+}
+
+input,
+textarea,
+select {
+  font-family: inherit;
+  font-size: inherit;
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+ul,
+ol {
+  list-style: none;
+}

@@ -1,0 +1,10 @@
+.main {
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 2rem 1.25rem;
+}
+
+.error {
+  font-size: 0.875rem;
+  color: var(--danger);
+}

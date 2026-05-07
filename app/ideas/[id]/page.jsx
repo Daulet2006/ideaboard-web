@@ -7,6 +7,7 @@ import { toast } from 'sonner'
 import { useAuth } from '../../../hooks/useAuth'
 import { useLocale } from '../../../hooks/useLocale'
 import { useWebSocketEvent } from '../../../hooks/useWebSocket'
+import { getApiErrorMessage } from '../../../lib/api-error'
 import { toApiAssetUrl } from '../../../services/api'
 import { ideaService } from '../../../services/idea.service'
 import FilePreviewCard from '../../../components/FilePreviewCard/FilePreviewCard'
@@ -80,7 +81,7 @@ export default function IdeaDetailPage() {
       toast.success(t('delete'))
       router.push('/')
     } catch (err) {
-      toast.error(err?.message || t('failedAction'))
+      toast.error(getApiErrorMessage(err, t('failedAction')))
       setIsDeleting(false)
     }
   }

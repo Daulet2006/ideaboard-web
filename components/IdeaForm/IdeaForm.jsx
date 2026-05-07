@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { useLocale } from '../../hooks/useLocale'
+import { getApiErrorMessage } from '../../lib/api-error'
 import { ideaService } from '../../services/idea.service'
 import FilePreviewCard from '../FilePreviewCard/FilePreviewCard'
 import styles from './IdeaForm.module.css'
@@ -95,12 +96,13 @@ export default function IdeaForm({ idea }) {
         router.push(`/ideas/${newIdea._id}`)
       }
     } catch (err) {
+      const message = getApiErrorMessage(err, t('failedAction'))
       if (err.status === 422) {
-        setError(err.data?.message || 'Validation error.')
+        setError(message)
       } else {
-        setError(err.message || 'Something went wrong.')
+        setError(message)
       }
-      toast.error(err.message || t('failedAction'))
+      toast.error(message)
     } finally {
       setIsLoading(false)
     }

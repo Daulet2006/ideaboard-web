@@ -8,6 +8,7 @@ import { useAuth } from '../../hooks/useAuth'
 import { useLocale } from '../../hooks/useLocale'
 import { useWebSocket } from '../../hooks/useWebSocket'
 import { useWebSocketEvent } from '../../hooks/useWebSocket'
+import { getApiErrorMessage } from '../../lib/api-error'
 import { toApiAssetUrl } from '../../services/api'
 import { authService } from '../../services/auth.service'
 import styles from './AppSidebar.module.css'
@@ -57,7 +58,7 @@ export default function AppSidebar() {
       setNotifications((prev) => prev.map((item) => ((item._id || item.id) === (updated._id || updated.id) ? updated : item)))
       setUnreadCount((prev) => Math.max(0, prev - 1))
     } catch (err) {
-      toast.error(err?.message || t('failedAction'))
+      toast.error(getApiErrorMessage(err, t('failedAction')))
     }
   }
 

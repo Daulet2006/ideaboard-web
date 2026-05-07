@@ -4,7 +4,9 @@ import { useCallback, useEffect, useState } from 'react'
 import { useAuth } from '../../hooks/useAuth'
 import { useLocale } from '../../hooks/useLocale'
 import { useWebSocketEvent } from '../../hooks/useWebSocket'
+import { getApiErrorMessage } from '../../lib/api-error'
 import { commentService } from '../../services/comment.service'
+import { toast } from 'sonner'
 import CommentItem from '../CommentItem/CommentItem'
 import styles from './CommentList.module.css'
 
@@ -75,11 +77,13 @@ export default function CommentList({ ideaId }) {
       })
       setNewComment('')
     } catch (err) {
+      const message = getApiErrorMessage(err, t('postFailed'))
       if (err.status === 422) {
-        setSubmitError(err.data?.message || t('failedAction'))
+        setSubmitError(message)
       } else {
-        setSubmitError(t('postFailed'))
+        setSubmitError(message)
       }
+      toast.error(message)
     } finally {
       setIsSubmitting(false)
     }

@@ -3,6 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useReducer } from 'react'
 import { authService } from '../services/auth.service'
 import { setToken, getToken, clearToken } from '../services/api'
+import { getApiErrorMessage } from '../lib/api-error'
 
 const AuthContext = createContext(null)
 
@@ -80,7 +81,7 @@ export function AuthProvider({ children }) {
       dispatch({ type: 'SET_USER', payload: data.user })
       return data
     } catch (err) {
-      dispatch({ type: 'SET_ERROR', payload: err.message })
+      dispatch({ type: 'SET_ERROR', payload: getApiErrorMessage(err, 'Login failed.') })
       throw err
     }
   }, [])
@@ -93,7 +94,7 @@ export function AuthProvider({ children }) {
       dispatch({ type: 'SET_USER', payload: data.user })
       return data
     } catch (err) {
-      dispatch({ type: 'SET_ERROR', payload: err.message })
+      dispatch({ type: 'SET_ERROR', payload: getApiErrorMessage(err, 'Registration failed.') })
       throw err
     }
   }, [])

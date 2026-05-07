@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useAuth } from '../../hooks/useAuth'
 import AppShell from '../../components/AppShell/AppShell'
 import AuthForm from '../../components/AuthForm/AuthForm'
+import PageLoader from '../../components/PageLoader/PageLoader'
 
 export default function LoginPage() {
   const { isAuthenticated, isLoading } = useAuth()
@@ -16,7 +17,13 @@ export default function LoginPage() {
     }
   }, [isAuthenticated, isLoading, router])
 
-  if (isLoading) return null
+  if (isLoading) {
+    return (
+      <AppShell>
+        <PageLoader />
+      </AppShell>
+    )
+  }
 
   return (
     <AppShell>

@@ -3,8 +3,10 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { toast } from 'sonner'
 import { useAuth } from '../../hooks/useAuth'
 import { useLocale } from '../../hooks/useLocale'
+import { getApiErrorMessage } from '../../lib/api-error'
 import styles from './AuthForm.module.css'
 
 export default function AuthForm({ mode = 'login' }) {
@@ -17,6 +19,21 @@ export default function AuthForm({ mode = 'login' }) {
   const [error, setError] = useState('')
   const [fieldErrors, setFieldErrors] = useState({})
   const [isLoading, setIsLoading] = useState(false)
+
+  function parseAuthFieldErrors(message) {
+    if (!message || typeof message !== 'string') return {}
+    const result = {}
+    const entries = message.split(';').map((entry) => entry.trim()).filter(Boolean)
+
+    entries.forEach((entry) => {
+      const lowered = entry.toLowerCase()
+      if (lowered.includes('username')) result.username = entry
+      if (lowered.includes('email')) result.email = entry
+      if (lowered.includes('password')) result.password = entry
+    })
+
+    return result
+  }
 
   function handleChange(e) {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }))
@@ -37,15 +54,20 @@ export default function AuthForm({ mode = 'login' }) {
       }
       router.push('/')
     } catch (err) {
-      if (err.status === 422 && err.data?.message) {
-        setError(err.data.message)
+      let message = getApiErrorMessage(err, t('somethingWrong'))
+
+      if (err.status === 401) {
+        message = t('invalidCredentials')
       } else if (err.status === 409) {
-        setError(t('emailTaken'))
-      } else if (err.status === 401) {
-        setError(t('invalidCredentials'))
-      } else {
-        setError(err.message || t('somethingWrong'))
+        message = getApiErrorMessage(err, t('emailTaken'))
       }
+
+      if (err.status === 422) {
+        setFieldErrors(parseAuthFieldErrors(message))
+      }
+
+      setError(message)
+      toast.error(message)
     } finally {
       setIsLoading(false)
     }

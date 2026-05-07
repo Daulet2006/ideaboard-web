@@ -23,6 +23,7 @@ const API_URL = readEnv(process.env.NEXT_PUBLIC_API_URL) || "http://localhost:50
 const API_PREFIX = normalizePrefix(process.env.NEXT_PUBLIC_API_PREFIX, "/api");
 const BASE_URL = `${stripTrailingSlash(API_URL)}${API_PREFIX}`;
 const API_ORIGIN = stripTrailingSlash(API_URL);
+const AUTH_ROUTES_WITH_EXPECTED_401 = new Set(["/auth/login", "/auth/register"]);
 
 let authToken = null;
 
@@ -62,8 +63,19 @@ export function toApiAssetUrl(path) {
   return `${API_ORIGIN}${normalizePath(path)}`;
 }
 
+const extractErrorMessage = (payload, fallback) => {
+  const message =
+    payload?.message ||
+    payload?.error?.message ||
+    payload?.error ||
+    fallback;
+
+  return typeof message === "string" && message.trim() ? message.trim() : fallback;
+};
+
 async function request(path, options = {}) {
-  const url = `${BASE_URL}${normalizePath(path)}`;
+  const normalizedPath = normalizePath(path);
+  const url = `${BASE_URL}${normalizedPath}`;
   const token = getToken();
   const isFormData = options.body instanceof FormData;
 
@@ -79,21 +91,39 @@ async function request(path, options = {}) {
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  const res = await fetch(url, { ...options, headers });
+  let res;
+  try {
+    res = await fetch(url, { ...options, headers });
+  } catch (networkError) {
+    const error = new Error("Unable to connect to the server. Please try again.");
+    error.status = 0;
+    error.path = normalizedPath;
+    error.data = null;
+    error.cause = networkError;
+    throw error;
+  }
 
   let data;
   try {
     data = await res.json();
   } catch {
-    data = { message: res.statusText };
+    data = { message: res.statusText || "Request failed" };
   }
 
   if (!res.ok) {
-    const error = new Error(data.message || 'Request failed');
+    const message = extractErrorMessage(data, res.statusText || "Request failed");
+    const error = new Error(message);
     error.status = res.status;
     error.data = data;
+    error.path = normalizedPath;
+    error.messageFromApi = message;
 
-    if (res.status === 401) {
+    const shouldHandleUnauthorized =
+      res.status === 401 &&
+      Boolean(token) &&
+      !AUTH_ROUTES_WITH_EXPECTED_401.has(normalizedPath);
+
+    if (shouldHandleUnauthorized) {
       clearToken();
       if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
         window.location.href = '/login';

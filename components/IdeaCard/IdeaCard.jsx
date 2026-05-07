@@ -5,6 +5,7 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 import { useAuth } from '../../hooks/useAuth'
 import { useLocale } from '../../hooks/useLocale'
+import { getApiErrorMessage } from '../../lib/api-error'
 import { toApiAssetUrl } from '../../services/api'
 import { ideaService } from '../../services/idea.service'
 import FilePreviewCard from '../FilePreviewCard/FilePreviewCard'
@@ -39,7 +40,7 @@ export default function IdeaCard({ idea, onDelete, onVoteChange }) {
       onDelete?.(idea._id)
       toast.success(t('delete'))
     } catch (err) {
-      toast.error(err?.message || t('failedAction'))
+      toast.error(getApiErrorMessage(err, t('failedAction')))
     } finally {
       setIsDeleting(false)
       setConfirmDelete(false)

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { useAuth } from '../../hooks/useAuth'
 import { useLocale } from '../../hooks/useLocale'
+import { getApiErrorMessage } from '../../lib/api-error'
 import { voteService } from '../../services/vote.service'
 import styles from './VoteButtons.module.css'
 
@@ -75,6 +76,8 @@ export default function VoteButtons({ ideaId, initialVotesCount = 0, initialVote
       setVoteState(prevState)
       if (err.status === 403) {
         toast.error(t('cannotVoteOwnIdea'))
+      } else {
+        toast.error(getApiErrorMessage(err, t('failedAction')))
       }
     } finally {
       setIsLoading(false)

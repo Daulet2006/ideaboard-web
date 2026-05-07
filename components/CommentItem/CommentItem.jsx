@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 import { useAuth } from '../../hooks/useAuth'
 import { useLocale } from '../../hooks/useLocale'
+import { getApiErrorMessage } from '../../lib/api-error'
 import { toApiAssetUrl } from '../../services/api'
 import { commentService } from '../../services/comment.service'
 import styles from './CommentItem.module.css'
@@ -39,7 +40,7 @@ export default function CommentItem({ comment, onDelete, onUpdate }) {
       onDelete?.(comment._id)
       toast.success(t('delete'))
     } catch (err) {
-      toast.error(err?.message || t('failedAction'))
+      toast.error(getApiErrorMessage(err, t('failedAction')))
     } finally {
       setIsDeleting(false)
       setConfirmDelete(false)
@@ -58,7 +59,7 @@ export default function CommentItem({ comment, onDelete, onUpdate }) {
       onUpdate?.(updatedComment)
       toast.success(t('save'))
     } catch (err) {
-      toast.error(err?.message || t('failedAction'))
+      toast.error(getApiErrorMessage(err, t('failedAction')))
     } finally {
       setIsSaving(false)
     }

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { useAuth } from '../../hooks/useAuth'
 import { useLocale } from '../../hooks/useLocale'
+import { getApiErrorMessage } from '../../lib/api-error'
 import { toApiAssetUrl } from '../../services/api'
 import { authService } from '../../services/auth.service'
 import { ideaService } from '../../services/idea.service'
@@ -91,7 +92,7 @@ export default function ProfilePage() {
         })
         setUsers(uniqueUsers)
       } catch (err) {
-        toast.error(err?.message || t('failedAction'))
+        toast.error(getApiErrorMessage(err, t('failedAction')))
       } finally {
         setUsersLoading(false)
       }
@@ -115,7 +116,7 @@ export default function ProfilePage() {
       setForm((prev) => ({ ...prev, avatar: null }))
       toast.success(t('profileUpdated'))
     } catch (err) {
-      toast.error(err?.message || t('failedAction'))
+      toast.error(getApiErrorMessage(err, t('failedAction')))
     } finally {
       setIsSaving(false)
     }
@@ -133,7 +134,7 @@ export default function ProfilePage() {
       setForm((prev) => ({ ...prev, avatar: null }))
       toast.success(t('removedAvatar'))
     } catch (err) {
-      toast.error(err?.message || t('failedAction'))
+      toast.error(getApiErrorMessage(err, t('failedAction')))
     } finally {
       setIsSaving(false)
     }
@@ -146,7 +147,7 @@ export default function ProfilePage() {
       setUsers((prev) => prev.map((item) => (getEntityId(item) === updatedId ? updated : item)))
       toast.success(t('save'))
     } catch (err) {
-      toast.error(err?.message || t('failedAction'))
+      toast.error(getApiErrorMessage(err, t('failedAction')))
     }
   }
 
@@ -160,7 +161,7 @@ export default function ProfilePage() {
       setUsers((prev) => prev.map((item) => (getEntityId(item) === updatedId ? updated : item)))
       toast.success(t('save'))
     } catch (err) {
-      toast.error(err?.message || t('failedAction'))
+      toast.error(getApiErrorMessage(err, t('failedAction')))
     }
   }
 
@@ -171,7 +172,7 @@ export default function ProfilePage() {
       setMessageDraft({ recipientId: '', title: '', message: '' })
       toast.success(t('messageSent'))
     } catch (err) {
-      toast.error(err?.message || t('failedAction'))
+      toast.error(getApiErrorMessage(err, t('failedAction')))
     }
   }
 

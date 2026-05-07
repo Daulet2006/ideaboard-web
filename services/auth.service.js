@@ -1,4 +1,5 @@
 import { api } from './api'
+import { normalizeAuthPayload } from '../lib/api-error'
 
 function normalizeUserShape(user) {
   if (!user) return null
@@ -18,12 +19,14 @@ function normalizeNotificationShape(notification) {
 
 export const authService = {
   async register({ username, email, password }) {
-    const res = await api.post('/auth/register', { username, email, password })
+    const payload = normalizeAuthPayload({ username, email, password })
+    const res = await api.post('/auth/register', payload)
     return res.data
   },
 
   async login({ email, password }) {
-    const res = await api.post('/auth/login', { email, password })
+    const payload = normalizeAuthPayload({ email, password })
+    const res = await api.post('/auth/login', payload)
     return res.data
   },
 

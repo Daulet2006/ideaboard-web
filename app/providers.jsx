@@ -3,8 +3,8 @@
 import { AuthProvider } from '../context/AuthContext'
 import { LocaleProvider } from '../context/LocaleContext'
 import { WebSocketProvider } from '../context/WebSocketContext'
-import { ThemeProvider } from '../components/theme-provider'
-import { Toaster } from '../components/ui/sonner'
+import { ThemeProvider } from 'next-themes'
+import { Toaster } from 'sonner'
 
 export default function Providers({ children }) {
   return (

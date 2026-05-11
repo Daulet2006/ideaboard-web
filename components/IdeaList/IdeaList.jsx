@@ -1,6 +1,7 @@
 'use client'
 
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { useLocale } from '../../hooks/useLocale'
 import { useWebSocketEvent } from '../../hooks/useWebSocket'
 import { useIdeas } from '../../hooks/useIdeas'
@@ -9,11 +10,18 @@ import styles from './IdeaList.module.css'
 
 const PAGE_LIMIT = Number(process.env.NEXT_PUBLIC_PAGE_LIMIT) || 10
 const SORT_OPTIONS = ['-date', 'date', '-votes', 'votes']
+const DEFAULT_SORT = '-date'
+
+function normalizeTag(tag) {
+  if (!tag) return ''
+  return tag.trim().toLowerCase()
+}
 
 export default function IdeaList() {
   const { t } = useLocale()
+  const searchParams = useSearchParams()
   const [page, setPage] = useState(1)
-  const [sort, setSort] = useState('-date')
+  const [sort, setSort] = useState(DEFAULT_SORT)
   const [search, setSearch] = useState('')
   const [searchInput, setSearchInput] = useState('')
   const [tags, setTags] = useState([])
@@ -59,6 +67,27 @@ export default function IdeaList() {
   )
   useWebSocketEvent('VOTE_UPDATE', handleVoteUpdate)
 
+  useEffect(() => {
+    const querySearch = (searchParams.get('search') || '').trim()
+    const querySort = searchParams.get('sort')
+    const queryTags = searchParams
+      .getAll('tag')
+      .map((tag) => normalizeTag(tag))
+      .filter(Boolean)
+    setSearch((prev) => (prev === querySearch ? prev : querySearch))
+    setSearchInput((prev) => (prev === querySearch ? prev : querySearch))
+    if (querySort && SORT_OPTIONS.includes(querySort)) {
+      setSort((prev) => (prev === querySort ? prev : querySort))
+    }
+    setTags((prev) => {
+      const tagsChanged =
+        queryTags.length !== prev.length ||
+        queryTags.some((tag, index) => tag !== prev[index])
+      return tagsChanged ? queryTags : prev
+    })
+    setPage(1)
+  }, [searchParams])
+
   function handleSearchInput(e) {
     const val = e.target.value
     setSearchInput(val)
@@ -77,13 +106,24 @@ export default function IdeaList() {
   function handleAddTag(e) {
     if ((e.key === 'Enter' || e.key === ',') && tagInput.trim()) {
       e.preventDefault()
-      const newTag = tagInput.trim().toLowerCase()
+      const newTag = normalizeTag(tagInput)
       if (!tags.includes(newTag)) {
         setTags((prev) => [...prev, newTag])
       }
       setTagInput('')
       setPage(1)
     }
+  }
+
+  function handleTagClick(tag) {
+    const normalizedTag = normalizeTag(tag)
+    if (!normalizedTag) return
+
+    setTags([normalizedTag])
+    setSearch('')
+    setSearchInput('')
+    setSort('-votes')
+    setPage(1)
   }
 
   function removeTag(tag) {
@@ -183,6 +223,7 @@ export default function IdeaList() {
               key={idea._id}
               idea={idea}
               onDelete={handleDeleteIdea}
+              onTagClick={handleTagClick}
             />
           ))}
         </div>

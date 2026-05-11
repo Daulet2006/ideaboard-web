@@ -6,8 +6,12 @@ export const commentService = {
     return res.data?.comments || []
   },
 
-  async addComment(ideaId, content) {
-    const res = await api.post(`/ideas/${ideaId}/comments`, { content })
+  async addComment(ideaId, content, parentComment = null) {
+    const body = { content }
+    if (parentComment) {
+      body.parentComment = parentComment
+    }
+    const res = await api.post(`/ideas/${ideaId}/comments`, body)
     return res.data?.comment
   },
 

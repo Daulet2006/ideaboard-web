@@ -126,7 +126,8 @@ export default function IdeaDetailPage() {
         <article className={styles.article}>
           <div className={styles.voteCol}>
             <VoteButtons
-              ideaId={idea._id}
+              targetId={idea._id}
+              targetType="idea"
               initialVotesCount={idea.votesCount ?? 0}
               initialVoteState={voteState}
               onVoteChange={handleVoteChange}
@@ -174,7 +175,13 @@ export default function IdeaDetailPage() {
             {idea.tags?.length > 0 && (
               <div className={styles.tags}>
                 {idea.tags.map((tag) => (
-                  <span key={tag} className={styles.tag}>{tag}</span>
+                  <Link
+                    key={tag}
+                    href={`/?tag=${encodeURIComponent(tag)}&sort=-votes`}
+                    className={styles.tag}
+                  >
+                    {tag}
+                  </Link>
                 ))}
               </div>
             )}

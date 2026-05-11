@@ -69,6 +69,13 @@
   color: var(--accent-light);
   font-size: 0.75rem;
   font-weight: 500;
+  cursor: pointer;
+  transition: background var(--transition), border-color var(--transition), color var(--transition);
+}
+
+.tag:hover {
+  background: var(--surface-elevated);
+  border-color: rgba(99, 102, 241, 0.35);
 }
 
 .fileTag {

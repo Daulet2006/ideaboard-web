@@ -24,7 +24,7 @@ function timeAgo(dateStr) {
   return new Date(dateStr).toLocaleDateString()
 }
 
-export default function IdeaCard({ idea, onDelete, onVoteChange }) {
+export default function IdeaCard({ idea, onDelete, onVoteChange, onTagClick }) {
   const { user, isAuthenticated } = useAuth()
   const { t } = useLocale()
   const [isDeleting, setIsDeleting] = useState(false)
@@ -56,7 +56,8 @@ export default function IdeaCard({ idea, onDelete, onVoteChange }) {
     <div className={styles.card}>
       <div className={styles.votes}>
         <VoteButtons
-          ideaId={idea._id}
+          targetId={idea._id}
+          targetType="idea"
           initialVotesCount={idea.votesCount ?? 0}
           initialVoteState={idea.myVote ?? null}
           onVoteChange={onVoteChange}
@@ -75,9 +76,15 @@ export default function IdeaCard({ idea, onDelete, onVoteChange }) {
         {idea.tags?.length > 0 && (
           <div className={styles.tags}>
             {idea.tags.map((tag) => (
-              <span key={tag} className={styles.tag}>
+              <button
+                key={tag}
+                type="button"
+                className={styles.tag}
+                onClick={() => onTagClick?.(tag)}
+                aria-label={`Filter by tag ${tag}`}
+              >
                 {tag}
-              </span>
+              </button>
             ))}
             {idea.files?.length > 0 && (
               <span className={styles.fileTag}>{idea.files.length} file(s)</span>

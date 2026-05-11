@@ -1,14 +1,62 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { toast } from 'sonner'
 import { useAuth } from '../../hooks/useAuth'
 import { useLocale } from '../../hooks/useLocale'
 import { useWebSocketEvent } from '../../hooks/useWebSocket'
 import { getApiErrorMessage } from '../../lib/api-error'
 import { commentService } from '../../services/comment.service'
-import { toast } from 'sonner'
 import CommentItem from '../CommentItem/CommentItem'
 import styles from './CommentList.module.css'
+
+function toId(value) {
+  if (!value) return null
+  if (typeof value === 'string') return value
+  if (typeof value === 'object' && value._id) return String(value._id)
+  return String(value)
+}
+
+function buildCommentTree(flatComments) {
+  const byId = new Map(
+    flatComments.map((comment) => [String(comment._id), { ...comment, replies: [] }])
+  )
+  const roots = []
+
+  flatComments.forEach((comment) => {
+    const commentId = String(comment._id)
+    const parentId = toId(comment.parentComment)
+    const node = byId.get(commentId)
+
+    if (parentId && byId.has(parentId)) {
+      byId.get(parentId).replies.push(node)
+      return
+    }
+
+    roots.push(node)
+  })
+
+  return roots
+}
+
+function removeCommentThread(flatComments, rootId) {
+  const removeIds = new Set([String(rootId)])
+  let changed = true
+
+  while (changed) {
+    changed = false
+    flatComments.forEach((comment) => {
+      const commentId = String(comment._id)
+      const parentId = toId(comment.parentComment)
+      if (parentId && removeIds.has(parentId) && !removeIds.has(commentId)) {
+        removeIds.add(commentId)
+        changed = true
+      }
+    })
+  }
+
+  return flatComments.filter((comment) => !removeIds.has(String(comment._id)))
+}
 
 export default function CommentList({ ideaId }) {
   const { isAuthenticated } = useAuth()
@@ -19,6 +67,20 @@ export default function CommentList({ ideaId }) {
   const [newComment, setNewComment] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState('')
+
+  const commentTree = useMemo(() => buildCommentTree(comments), [comments])
+
+  const upsertComment = useCallback((incomingComment) => {
+    setComments((prev) => {
+      const exists = prev.some((comment) => comment._id === incomingComment._id)
+      if (exists) {
+        return prev.map((comment) =>
+          comment._id === incomingComment._id ? incomingComment : comment
+        )
+      }
+      return [incomingComment, ...prev]
+    })
+  }, [])
 
   const fetchComments = useCallback(async () => {
     if (!ideaId) return
@@ -33,56 +95,68 @@ export default function CommentList({ ideaId }) {
   }, [ideaId, t])
 
   useEffect(() => {
+    setIsLoading(true)
+    setError('')
     fetchComments()
   }, [fetchComments])
 
   const handleNewComment = useCallback(
     (payload) => {
-      if (String(payload.ideaId) === String(ideaId)) {
-        setComments((prev) => {
-          const exists = prev.some((c) => c._id === payload.comment._id)
-          if (exists) return prev
-          return [payload.comment, ...prev]
-        })
+      if (String(payload.ideaId) === String(ideaId) && payload.comment) {
+        upsertComment(payload.comment)
       }
     },
-    [ideaId]
+    [ideaId, upsertComment]
   )
   useWebSocketEvent('NEW_COMMENT', handleNewComment)
 
   const handleCommentUpdated = useCallback(
     (payload) => {
-      if (String(payload.ideaId) !== String(ideaId)) return
-      setComments((prev) =>
-        prev.map((comment) =>
-          comment._id === payload.comment._id ? payload.comment : comment
-        )
-      )
+      if (String(payload.ideaId) !== String(ideaId) || !payload.comment) return
+      upsertComment(payload.comment)
     },
-    [ideaId]
+    [ideaId, upsertComment]
   )
   useWebSocketEvent('COMMENT_UPDATED', handleCommentUpdated)
+
+  const handleCommentVoteUpdated = useCallback(
+    (payload) => {
+      if (!payload || !payload.commentId) return
+      setComments((prev) =>
+        prev.map((comment) => {
+          if (String(comment._id) !== String(payload.commentId)) return comment
+          return {
+            ...comment,
+            votesCount: payload.votesCount ?? comment.votesCount ?? 0,
+            likesCount: payload.likesCount ?? comment.likesCount ?? 0,
+            dislikesCount: payload.dislikesCount ?? comment.dislikesCount ?? 0,
+          }
+        })
+      )
+    },
+    []
+  )
+  useWebSocketEvent('COMMENT_VOTE_UPDATE', handleCommentVoteUpdated)
+
+  async function createComment(content, parentComment = null) {
+    const created = await commentService.addComment(ideaId, content, parentComment)
+    upsertComment(created)
+    return created
+  }
 
   async function handleSubmit(e) {
     e.preventDefault()
     if (!newComment.trim()) return
+
     setSubmitError('')
     setIsSubmitting(true)
+
     try {
-      const comment = await commentService.addComment(ideaId, newComment.trim())
-      setComments((prev) => {
-        const exists = prev.some((c) => c._id === comment._id)
-        if (exists) return prev
-        return [comment, ...prev]
-      })
+      await createComment(newComment.trim())
       setNewComment('')
     } catch (err) {
       const message = getApiErrorMessage(err, t('postFailed'))
-      if (err.status === 422) {
-        setSubmitError(message)
-      } else {
-        setSubmitError(message)
-      }
+      setSubmitError(message)
       toast.error(message)
     } finally {
       setIsSubmitting(false)
@@ -90,14 +164,29 @@ export default function CommentList({ ideaId }) {
   }
 
   function handleDelete(id) {
-    setComments((prev) => prev.filter((c) => c._id !== id))
+    setComments((prev) => removeCommentThread(prev, id))
   }
 
   function handleUpdate(updatedComment) {
+    upsertComment(updatedComment)
+  }
+
+  function handleReply(replyComment) {
+    upsertComment(replyComment)
+  }
+
+  function handleVoteChange(commentId, voteData) {
     setComments((prev) =>
-      prev.map((comment) =>
-        comment._id === updatedComment._id ? updatedComment : comment
-      )
+      prev.map((comment) => {
+        if (String(comment._id) !== String(commentId)) return comment
+        return {
+          ...comment,
+          votesCount: voteData.votesCount ?? comment.votesCount ?? 0,
+          likesCount: voteData.likesCount ?? comment.likesCount ?? 0,
+          dislikesCount: voteData.dislikesCount ?? comment.dislikesCount ?? 0,
+          myVote: voteData.voteState ?? null,
+        }
+      })
     )
   }
 
@@ -158,12 +247,15 @@ export default function CommentList({ ideaId }) {
 
       {!isLoading && comments.length > 0 && (
         <div className={styles.list}>
-          {comments.map((comment) => (
+          {commentTree.map((comment) => (
             <CommentItem
               key={comment._id}
               comment={comment}
+              ideaId={ideaId}
               onDelete={handleDelete}
               onUpdate={handleUpdate}
+              onReply={handleReply}
+              onVoteChange={handleVoteChange}
             />
           ))}
         </div>
@@ -171,3 +263,4 @@ export default function CommentList({ ideaId }) {
     </section>
   )
 }
+

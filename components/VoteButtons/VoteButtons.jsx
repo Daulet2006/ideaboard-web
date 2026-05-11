@@ -8,9 +8,18 @@ import { getApiErrorMessage } from '../../lib/api-error'
 import { voteService } from '../../services/vote.service'
 import styles from './VoteButtons.module.css'
 
-export default function VoteButtons({ ideaId, initialVotesCount = 0, initialVoteState = null, onVoteChange }) {
+export default function VoteButtons({
+  targetId,
+  ideaId,
+  targetType = 'idea',
+  initialVotesCount = 0,
+  initialVoteState = null,
+  onVoteChange,
+}) {
   const { isAuthenticated } = useAuth()
   const { t } = useLocale()
+  const resolvedTargetId = targetId || ideaId
+  const isCommentVote = targetType === 'comment'
   const [votesCount, setVotesCount] = useState(initialVotesCount)
   const [voteState, setVoteState] = useState(initialVoteState)
   const [isLoading, setIsLoading] = useState(false)
@@ -25,18 +34,22 @@ export default function VoteButtons({ ideaId, initialVotesCount = 0, initialVote
   }, [initialVoteState])
 
   useEffect(() => {
-    if (!isAuthenticated || !ideaId || initialVoteState !== null || loadedVoteStateRef.current) return
+    loadedVoteStateRef.current = false
+  }, [resolvedTargetId, targetType])
+
+  useEffect(() => {
+    if (!isAuthenticated || !resolvedTargetId || initialVoteState !== null || loadedVoteStateRef.current) return
 
     loadedVoteStateRef.current = true
     voteService
-      .getUserVote(ideaId)
+      .getUserVote(resolvedTargetId, targetType)
       .then((state) => {
         setVoteState(state)
       })
       .catch(() => {
         // ignore vote-state fetch errors
       })
-  }, [ideaId, initialVoteState, isAuthenticated])
+  }, [resolvedTargetId, initialVoteState, isAuthenticated, targetType])
 
   const handleVote = useCallback(async (value) => {
     if (!isAuthenticated) {
@@ -51,15 +64,37 @@ export default function VoteButtons({ ideaId, initialVotesCount = 0, initialVote
     let newCount = votesCount
     let newState = voteState
 
-    if (voteState === value) {
-      newCount -= value
-      newState = null
-    } else if (voteState !== null) {
-      newCount += value * 2
-      newState = value
+    if (isCommentVote) {
+      if (voteState === 1 && value === 1) {
+        newCount = Math.max(0, votesCount - 1)
+        newState = null
+      } else if (voteState === -1 && value === 1) {
+        newCount = votesCount + 1
+        newState = 1
+      } else if (voteState === 1 && value === -1) {
+        newCount = Math.max(0, votesCount - 1)
+        newState = -1
+      } else if (voteState === -1 && value === -1) {
+        newCount = votesCount
+        newState = null
+      } else if (voteState === null && value === 1) {
+        newCount = votesCount + 1
+        newState = 1
+      } else if (voteState === null && value === -1) {
+        newCount = votesCount
+        newState = -1
+      }
     } else {
-      newCount += value
-      newState = value
+      if (voteState === value) {
+        newCount -= value
+        newState = null
+      } else if (voteState !== null) {
+        newCount += value * 2
+        newState = value
+      } else {
+        newCount += value
+        newState = value
+      }
     }
 
     setVotesCount(newCount)
@@ -67,22 +102,70 @@ export default function VoteButtons({ ideaId, initialVotesCount = 0, initialVote
 
     setIsLoading(true)
     try {
-      const data = await voteService.castVote(ideaId, value)
-      setVotesCount(data.idea?.votesCount ?? newCount)
-      setVoteState(data.voteState ?? newState)
-      onVoteChange?.({ votesCount: data.idea?.votesCount ?? newCount, voteState: data.voteState ?? newState })
+      const data = await voteService.castVote(resolvedTargetId, value, targetType)
+      const nextVoteState = data.voteState ?? newState
+
+      if (isCommentVote) {
+        const nextLikesCount = data.likesCount ?? newCount
+        setVotesCount(nextLikesCount)
+        setVoteState(nextVoteState)
+        onVoteChange?.({
+          votesCount: data.votesCount,
+          voteState: nextVoteState,
+          likesCount: nextLikesCount,
+          dislikesCount: data.dislikesCount,
+        })
+      } else {
+        const nextVotesCount = data.idea?.votesCount ?? newCount
+        setVotesCount(nextVotesCount)
+        setVoteState(nextVoteState)
+        onVoteChange?.({
+          votesCount: nextVotesCount,
+          voteState: nextVoteState,
+          likesCount: data.likesCount,
+          dislikesCount: data.dislikesCount,
+        })
+      }
     } catch (err) {
       setVotesCount(prevCount)
       setVoteState(prevState)
       if (err.status === 403) {
-        toast.error(t('cannotVoteOwnIdea'))
+        toast.error(targetType === 'comment' ? t('cannotVoteOwnComment') : t('cannotVoteOwnIdea'))
       } else {
         toast.error(getApiErrorMessage(err, t('failedAction')))
       }
     } finally {
       setIsLoading(false)
     }
-  }, [ideaId, isAuthenticated, isLoading, voteState, votesCount, onVoteChange, t])
+  }, [isCommentVote, resolvedTargetId, targetType, isAuthenticated, isLoading, voteState, votesCount, onVoteChange, t])
+
+  if (isCommentVote) {
+    return (
+      <div className={styles.commentContainer}>
+        <button
+          className={`${styles.commentBtn} ${voteState === 1 ? styles.commentLikeActive : ''}`}
+          onClick={() => handleVote(1)}
+          aria-label="Upvote"
+          disabled={isLoading}
+          title={isAuthenticated ? t('upvote') : t('loginToVote')}
+        >
+          👍
+        </button>
+        <span className={`${styles.commentCount} ${voteState === 1 ? styles.commentCountActive : ''}`}>
+          {votesCount}
+        </span>
+        <button
+          className={`${styles.commentBtn} ${voteState === -1 ? styles.commentDislikeActive : ''}`}
+          onClick={() => handleVote(-1)}
+          aria-label="Downvote"
+          disabled={isLoading}
+          title={isAuthenticated ? t('downvote') : t('loginToVote')}
+        >
+          👎
+        </button>
+      </div>
+    )
+  }
 
   return (
     <div className={styles.container}>
